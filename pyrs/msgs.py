@@ -11,31 +11,31 @@ from proto import stream_pb2
 
 class ProtoHolder(object):
   def __init__(self):
-    self.ReqFns = {};
-    self.RespFns = {};
- 
+    self.ReqFns = {}
+    self.RespFns = {}
+
   def construct(self, is_resp, sub_msg_id, data):
-    fn = None;
+    fn = None
     if is_resp:
       if sub_msg_id not in self.RespFns:
-        if __debug__: 
-            print "ProtoHolder sub_msg not found in RespFns";
-        return None;
-      fn = self.RespFns[sub_msg_id];
+        if __debug__:
+            print("ProtoHolder sub_msg not found in RespFns")
+        return None
+      fn = self.RespFns[sub_msg_id]
     else:
       if sub_msg_id not in self.ReqFns:
-        if __debug__: 
-            print "ProtoHolder sub_msg not found in ReqFns";
-        return None;
-      fn = self.ReqFns[sub_msg_id];
+        if __debug__:
+            print("ProtoHolder sub_msg not found in ReqFns")
+            return None
+      fn = self.ReqFns[sub_msg_id]
 
-    obj = fn();
+    obj = fn()
     try:
-      obj.ParseFromString(data);
+      obj.ParseFromString(data)
     except Exception, e:
-      if __debug__: 
-          print "ProtoHolder error parsing string. Exception: %s" % (e);
-      return None;
+      if __debug__:
+          print f"ProtoHolder error parsing string. Exception: {e}"
+      return None
 
     return obj
 
@@ -45,7 +45,7 @@ class ProtoHolder(object):
 class ProtoPeers(ProtoHolder):
   def __init__(self):
     # init parent.
-    ProtoHolder.__init__(self);
+    ProtoHolder.__init__(self)
 
     # dict of Requests.
     self.ReqFns[peers_pb2.MsgId_RequestPeers] = peers_pb2.RequestPeers
@@ -60,7 +60,7 @@ class ProtoPeers(ProtoHolder):
 class ProtoSystem(ProtoHolder):
   def __init__(self):
     # init parent.
-    ProtoHolder.__init__(self);
+    ProtoHolder.__init__(self)
 
     # dict of Requests.
     self.ReqFns[system_pb2.MsgId_RequestSystemStatus] = system_pb2.RequestSystemStatus
@@ -77,7 +77,7 @@ class ProtoSystem(ProtoHolder):
 class ProtoChat(ProtoHolder):
   def __init__(self):
     # init parent.
-    ProtoHolder.__init__(self);
+    ProtoHolder.__init__(self)
 
     # dict of Requests.
     self.ReqFns[chat_pb2.MsgId_RequestChatLobbies] = chat_pb2.RequestChatLobbies
@@ -101,7 +101,7 @@ class ProtoChat(ProtoHolder):
 class ProtoSearch(ProtoHolder):
   def __init__(self):
     # init parent.
-    ProtoHolder.__init__(self);
+    ProtoHolder.__init__(self)
 
     # dict of Requests.
     self.ReqFns[search_pb2.MsgId_RequestBasicSearch] = search_pb2.RequestBasicSearch
@@ -118,7 +118,7 @@ class ProtoSearch(ProtoHolder):
 class ProtoFiles(ProtoHolder):
   def __init__(self):
     # init parent.
-    ProtoHolder.__init__(self);
+    ProtoHolder.__init__(self)
 
     # dict of Requests.
     self.ReqFns[files_pb2.MsgId_RequestTransferList] = files_pb2.RequestTransferList
@@ -134,7 +134,7 @@ class ProtoFiles(ProtoHolder):
 class ProtoStream(ProtoHolder):
   def __init__(self):
     # init parent.
-    ProtoHolder.__init__(self);
+    ProtoHolder.__init__(self)
 
     # dict of Requests.
     self.ReqFns[stream_pb2.MsgId_RequestStartFileStream] = stream_pb2.RequestStartFileStream
@@ -151,79 +151,74 @@ class ProtoStream(ProtoHolder):
 
 class RpcMsgs(object):
   def __init__(self):
-    self.ProtoDict = {};
+    self.ProtoDict = {}
     # build dict of objs.
 
-    self.ProtoDict[core_pb2.PEERS] = ProtoPeers();
-    self.ProtoDict[core_pb2.SYSTEM] = ProtoSystem();
-    self.ProtoDict[core_pb2.CHAT] = ProtoChat();
-    self.ProtoDict[core_pb2.SEARCH] = ProtoSearch();
-    self.ProtoDict[core_pb2.FILES] = ProtoFiles();
-    self.ProtoDict[core_pb2.STREAM] = ProtoStream();
-    
+    self.ProtoDict[core_pb2.PEERS] = ProtoPeers()
+    self.ProtoDict[core_pb2.SYSTEM] = ProtoSystem()
+    self.ProtoDict[core_pb2.CHAT] = ProtoChat()
+    self.ProtoDict[core_pb2.SEARCH] = ProtoSearch()
+    self.ProtoDict[core_pb2.FILES] = ProtoFiles()
+    self.ProtoDict[core_pb2.STREAM] = ProtoStream()
+
   def construct(self, msg_id, data):
     # split the msg_id into bits.
-    ext_id = getRpcMsgIdExtension(msg_id);
-    service_id = getRpcMsgIdService(msg_id);
-    submsg_id = getRpcMsgIdSubMsg(msg_id);
-    is_resp = isRpcMsgIdResponse(msg_id);
+    ext_id = getRpcMsgIdExtension(msg_id)
+    service_id = getRpcMsgIdService(msg_id)
+    submsg_id = getRpcMsgIdSubMsg(msg_id)
+    is_resp = isRpcMsgIdResponse(msg_id)
 
-    if __debug__: 
-        print "RpcMsgs::contruct() msg_id: (ext: %d, serv: %d, submsg: %d, is_resp: %d)" % (ext_id, service_id, submsg_id, is_resp);
+    if __debug__:
+        print(f"RpcMsgs::contruct() msg_id: (ext: {ext_id}, serv: {service_id}, submsg: {sub_msg_id}, is_resp: {is_resp}")
 
         if not (ext_id == core_pb2.CORE):
-          print "RpcMsgs::contruct() Only Handled CORE msg Types";
-          return None;
-    
+          print(f"RpcMsgs::contruct() Only Handled CORE msg Types")
+          return None
+
         if service_id not in self.ProtoDict:
-          print "RpcMsgs::contruct() Unknown service_id";
-          return None;
+          print (f"RpcMsgs::contruct() Unknown service_id")
+          return None
 
-    proto = self.ProtoDict[service_id];
+    proto = self.ProtoDict[service_id]
 
-    ans = proto.construct(is_resp, submsg_id, data);
-    if __debug__: 
+    ans = proto.construct(is_resp, submsg_id, data)
+    if __debug__:
         if not ans:
-          print "RpcMsgs::contruct() ProtoHolder failed to Parse Msg";
-
-    return ans;
-
+          print (f"RpcMsgs::contruct() ProtoHolder failed to Parse Msg")
+    return ans
 
 
 
 # These have been translated from C++ versions.
 def getRpcMsgIdSubMsg(msg_id):
-  sub_msg_id = msg_id & 0xFF;
-  return sub_msg_id;
+  sub_msg_id = msg_id & 0xFF
+  return sub_msg_id
 
 # Middle 16 bits.
 def getRpcMsgIdService(msg_id):
-  service_id = (msg_id >> 8) & 0xFFFF;
-  return service_id;
+  service_id = (msg_id >> 8) & 0xFFFF
+  return service_id
 
 # Top 8 bits.
 def getRpcMsgIdExtension(msg_id):
-  ext_id = (msg_id >> 24) & 0xFE; # Bottom Bit is for Request / Response
-  return ext_id;
+  ext_id = (msg_id >> 24) & 0xFE # Bottom Bit is for Request / Response
+  return ext_id
 
 def isRpcMsgIdResponse(msg_id):
-  isresp = (msg_id >> 24) & 0x01;
-  return isresp;
+  isresp = (msg_id >> 24) & 0x01
+  return isresp
 
 
 def constructMsgId(ext, service, submsg, is_response):
   # enforce bit sizes.
-  ext &= 0xFF;
-  service &= 0xFFFF;
-  submsg &= 0xFF;
-  
+  ext &= 0xFF
+  service &= 0xFFFF
+  submsg &= 0xFF
+
   if (is_response):
-    ext |= 0x01; # Set Bottom Bit.
+    ext |= 0x01 # Set Bottom Bit.
   else:
-    ext &= 0xFE; # Clear Bottom Bit.
-  
-  msg_id = (ext << 24) + (service << 8) + (submsg);
-  return msg_id;
+    ext &= 0xFE # Clear Bottom Bit.
 
-    
-
+  msg_id = (ext << 24) + (service << 8) + (submsg)
+  return msg_id
